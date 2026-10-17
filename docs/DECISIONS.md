@@ -20,6 +20,14 @@ Newest at the bottom.
 | 13 | 2 | Launches found via pump.fun's mint-authority account, verified at run time | Cheap way to list creations; the address isn't in docs we could check, so the code stops if it returns no launch records | Scanning all pump.fun transactions (tens of thousands of calls) |
 | 14 | 2 | Price = curve price after each trade, from the event's virtual reserves | Exactly the bonding-curve price, no fees or rounding from trade sizes | SOL amount ÷ token amount per trade |
 | 15 | 2 | **Label (pre-registered):** pump-and-dump = peak ≥ 2× the lowest earlier price, then a fall to ≤ ½ the peak, within the first hour; sensitivity: +50% / −30% (Mongardini & Mei) | Price-only, so the label can't leak from the model's inputs; stricter than the hourly-exchange thresholds because curve prices move mechanically with every buy | Their thresholds as primary; adding volume conditions (volume rises mechanically with price on a curve) |
+| 16 | 3 | Ties spread uniformly within the slot, keeping order; every fit repeated over 5 random spreads | Simplest standard fix; repeating shows whether it matters (on simulated slot-rounded data, n moved by under 0.01) | Merging ties into one marked event |
+| 17 | 3 | Optimise over (log μ, log β, logit n), so 0 < n < 1 | Every candidate is a valid, non-explosive model, which keeps the optimiser stable | Constrained optimisation on raw parameters |
+| 18 | 3 | Observation window ends one slot after the last trade | Avoids inventing a quiet tail we didn't observe | A fixed 3,600 s (would count post-graduation silence as "no trades") |
+
+## Known limitations so far
+- **n < 1 by construction.** A pump could genuinely be explosive (n ≥ 1) for a while. Estimates pressing against 1 should be read as "at least near-critical", not as exact values.
+- **Pooled stream.** Stage 3 treats all trades as one stream. Splitting by wallet group and buy/sell is Stage 4.
+- **Sample size per token.** With ~300 events the branching ratio's spread is about ±0.06 (see `VALIDATION.md`), so small differences between single tokens aren't meaningful.
 
 ## Open questions
 - Tied timestamps: Solana times are slot-level (~400 ms), so many trades share a time. Method to be chosen in Stage 3.

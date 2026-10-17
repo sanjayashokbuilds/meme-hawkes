@@ -13,11 +13,16 @@ The finished project is a web app: paste a pump.fun token address, get an excita
 - [x] Stage 0: scaffold
 - [x] Stage 1: foundations and literature ([concepts](docs/CONCEPTS.md), [literature](docs/LITERATURE.md))
 - [x] Stage 2: data, wallet grouping, pre-registered sample and pump-and-dump rule ([data notes](docs/DATA.md))
-- [ ] Stage 3: univariate Hawkes, validated on simulated data
+- [x] Stage 3: univariate Hawkes from scratch, validated on simulated data ([validation](docs/VALIDATION.md))
 - [ ] Stage 4: multivariate Hawkes and branching ratios
 - [ ] Stage 5: early-warning test against a baseline
 - [ ] Stage 6: dashboard
 - [ ] Stage 7: write-up
+
+## Validation so far
+Before touching real data, the estimator was run on 100 simulated trade histories per scenario with known parameters. It recovers the branching ratio with negligible bias. The spread is about ±0.04 at 1,000 trades and about ±0.06 at 300 trades. Full table in [`docs/VALIDATION.md`](docs/VALIDATION.md).
+
+![Recovery of the branching ratio on simulated data](figures/recovery.png)
 
 See [`docs/PLAN.md`](docs/PLAN.md) for the schedule and [`docs/DECISIONS.md`](docs/DECISIONS.md) for every modelling choice.
 
