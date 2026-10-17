@@ -23,9 +23,10 @@ Why measured: on the first real token, a fixed 0.4 s per slot gave 150 s where b
 ## Source: the Solana blockchain itself
 Everything (the research sample and the app's live lookups) comes from standard Solana RPC calls, via `meme_hawkes/fetch.py`:
 
-1. `getSignaturesForAddress` on the token's mint address lists every transaction that touched it (1,000 per call).
+1. `getSignaturesForAddress` on the token's **bonding-curve account** lists its transactions (1,000 per call). The address is derived from the mint offline. We use the bonding curve rather than the mint because busy tokens' mints are flooded with wallet-to-wallet transfers that aren't trades.
 2. `getTransaction` fetches each one (one call per transaction, which is the slow part).
-3. Inside each transaction we find pump.fun's **TradeEvent** record. It starts with a fixed 8-byte tag (the first 8 bytes of sha256 of `"event:TradeEvent"`). We unpack its first six fields: mint, SOL amount, token amount, buy/sell, wallet, timestamp. Events for other tokens are dropped.
+3. Inside each transaction we find pump.fun's **TradeEvent** record. It starts with a fixed 8-byte tag (the first 8 bytes of sha256 of `"event:TradeEvent"`). We unpack mint, amount, buy/sell, wallet and the curve's reserves, which give the price. Events for other tokens are dropped.
+4. **Quote currency:** most tokens are priced in SOL. Some newer ones are priced in USDC; their events carry the amounts in separate quote fields, and we read those. Columns `quote`, `amount` (in the quote currency) and `price` (quote per token) cover both.
 
 The endpoint is a free Helius key if one is in `.env` (1M credits a month, up to 10 requests a second, no card), otherwise Solana's public endpoint (no account, slower).
 
@@ -40,7 +41,7 @@ Ruled out: Dune (free tier is view-only), Bitquery (trial of about 200 calls, re
 ## The sample (pre-registered, see `meme_hawkes/sample.py`)
 1. Population: every pump.fun token launched between 6 and 2 hours before the pull, so each first hour is complete.
 2. Shuffled with a fixed seed (2026).
-3. Kept if it had at least 100 successful transactions in its first hour.
+3. Kept if it had at least 100 successful bonding-curve transactions (trades) in its first hour. *Amendment 1: originally "transactions touching the mint"; see `DECISIONS.md` #19.*
 4. Stop at 40 tokens. `data/raw/sample_log.csv` records every token checked and why it was kept or dropped.
 
 Each kept token contributes its first hour of bonding-curve trades, capped at 1,000 transactions. Trades after graduation happen on a different program and aren't included.

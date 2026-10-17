@@ -1,8 +1,8 @@
 # Secrets (API keys live here, never in the repo)
 .env
 
-# Raw API pulls: large and re-downloadable
-data/raw/*
+# Raw pulls (real wallet addresses; re-downloadable), including archived ones like data/raw_v1/
+data/raw*/*
 !data/raw/.gitkeep
 
 # Python clutter

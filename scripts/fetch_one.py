@@ -25,11 +25,12 @@ if raw.empty:
 df = label_groups(clean_trades(raw))
 print(f"\n{len(df)} trades from {df['wallet'].nunique()} wallets over {df['t'].max():.0f} seconds")
 print(df["event_type"].value_counts().to_string())
-print("\nSOL per trade: median", round(df["sol_amount"].median(), 4), "| max", round(df["sol_amount"].max(), 2))
+quote = df["quote"].iloc[0]
+print(f"\nPriced in {quote}. Paid per trade: median", round(df["amount"].median(), 4), "| max", round(df["amount"].max(), 2))
 
 # Clock check: the calibrated slot clock should now agree with real block times (whole seconds).
 elapsed_real = df["block_time"].max() - df["block_time"].min()
 print(f"Measured slot length: {df['seconds_per_slot'].iloc[0]:.3f} s")
 print(f"Slot clock says {df['t'].max():.0f} s; block times say {elapsed_real} s")
 print("\nFirst five trades (wallets shortened):")
-print(df.assign(wallet=df["wallet"].str[:6])[["slot", "t", "wallet", "side", "sol_amount", "group"]].head().to_string(index=False))
+print(df.assign(wallet=df["wallet"].str[:6])[["slot", "t", "wallet", "side", "amount", "price", "group"]].head().to_string(index=False))

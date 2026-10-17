@@ -13,12 +13,20 @@ import pytest
 from meme_hawkes.fetch import (
     CREATE_EVENT,
     EVENT_LAYOUT,
+    PUMP_PROGRAM,
     TRADE_EVENT,
+    bonding_curve_address,
     decode_create_events,
     decode_trade_events,
     events_in_transaction,
     launches_in_transaction,
+    program_address,
 )
+
+# A real on-chain event (public data): the first trade of a USDC-priced token,
+# copied from its transaction. The transaction's own USDC balance changes show
+# 17.913488 USDC went into the curve, leaving 4,309.913488 USDC virtual reserves.
+REAL_USDC_TRADE = "BUV4LqTLWqEhXptXmSCkvVHYB8N8rgTJ4LuDfzXyBSUMLgwR3vLoTbjCYCSuSKR41u4q1J8ijr2uWY6sbZ6AnHXQcofsChVLFCUpq7NGw4PuETMJuUPzFqGwB6SvWYZqbV8tRfZNrn3xpCQ4WBkkfzbtJyeFrMdo5PoXpDjS2KsntbAW1WZ69RFEWghggkr1dp6Qtawp3HkSjFk2AggJYMQBwWjamTwxFsmpwbAZysaAHP884rP6RwZ1y3FsPiBt1DzsA8tZ8bgqoRPUZvvTj1DaEViQ2MXTh6koZ1RvSshYmxX3akVZoqknbYkTutYRdcvZZWF4qp67LNrg5g1WfMfSySbLe4mmQvy2LW4Nach5tfy5gTp7SVVJWXXPbPpSFdFk2PDVtEkdRJXo62jg7Jzbr35KAkF6qCEfChkVxcPNNiFaGhsmruqtp8R8dSyek7RGwrsgvnTGm8d1e6s2nUsohf2dGFJo5CWeN9XMJ9UjpfPB4dHaSvJGdNRF6PYWTi4xNd5faRBxp2GtQ86WK"
 
 MINT = bytes(range(32))
 USER = bytes(range(32, 64))
@@ -31,9 +39,12 @@ def fake_trade(is_buy=True, lamports=1_500_000_000):
     return TRADE_EVENT + body + extra_fields
 
 
+CURVE = bytes(range(64, 96))
+
+
 def fake_create(name=b"Dog Coin", symbol=b"DOG", uri=b"https://example.com/x.json"):
     strings = b"".join(struct.pack("<I", len(s)) + s for s in (name, symbol, uri))
-    return CREATE_EVENT + strings + MINT + USER  # mint, then more keys
+    return CREATE_EVENT + strings + MINT + CURVE + USER  # mint, bonding curve, then more keys
 
 
 def test_trade_decoder_finds_event_inside_other_bytes():
@@ -43,6 +54,7 @@ def test_trade_decoder_finds_event_inside_other_bytes():
     assert event["side"] == "buy"
     assert event["sol_amount"] == 1.5
     assert event["price"] == pytest.approx(5e-8)
+    assert event["quote"] == "SOL" and event["amount"] == 1.5
 
 
 def test_trade_decoder_reads_sells_and_multiple_events():
@@ -50,8 +62,9 @@ def test_trade_decoder_reads_sells_and_multiple_events():
     assert [e["side"] for e in decode_trade_events(raw)] == ["buy", "sell"]
 
 
-def test_create_decoder_skips_the_strings_to_find_the_mint():
-    assert decode_create_events(b"junk" + fake_create()) == [base58.b58encode(MINT).decode()]
+def test_create_decoder_skips_the_strings_to_find_the_mint_and_curve():
+    assert decode_create_events(b"junk" + fake_create()) == [
+        {"mint": base58.b58encode(MINT).decode(), "bonding_curve": base58.b58encode(CURVE).decode()}]
 
 
 def test_create_decoder_ignores_garbage_after_the_tag():
@@ -72,4 +85,19 @@ def test_falls_back_to_logs():
         "innerInstructions": [],
         "logMessages": ["Program data: " + base64.b64encode(fake_create()).decode()],
     }}
-    assert launches_in_transaction(tx) == [base58.b58encode(MINT).decode()]
+    assert launches_in_transaction(tx)[0]["mint"] == base58.b58encode(MINT).decode()
+
+
+def test_bonding_curve_address_matches_real_chain_data():
+    # Pairs read from a real launch transaction.
+    assert bonding_curve_address("AmxHq6z7B4svddqfSzHBB9TiCYwBBhhdaarMCY2Lpump") == \
+        "2F4NrukLW4STzCuruUMYSCJYfHtu5YARRSQw18Ws3wbC"
+    assert program_address([b"__event_authority"], PUMP_PROGRAM) == "Ce6TQqeHC9p8KetsN6JsjHK7UTZk7nasjjnr7XxXp9F1"
+
+
+def test_real_usdc_priced_trade_is_decoded_in_usdc():
+    [event] = decode_trade_events(base58.b58decode(REAL_USDC_TRADE))
+    assert event["mint"] == "AmxHq6z7B4svddqfSzHBB9TiCYwBBhhdaarMCY2Lpump"
+    assert event["side"] == "buy" and event["sol_amount"] == 0
+    assert event["quote"] == "USDC" and event["amount"] == pytest.approx(17.913488)
+    assert event["price"] == pytest.approx(4309.913488 / 1_068_540_241.68938)

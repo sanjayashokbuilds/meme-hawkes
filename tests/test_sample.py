@@ -10,9 +10,12 @@ def fake_chain(monkeypatch, launches_per_tx, tx_counts):
     sigs = [f"sig{i}" for i in range(len(launches_per_tx))]
     monkeypatch.setattr(sample, "launch_signatures", lambda url, start, end: list(sigs))
     monkeypatch.setattr(sample, "rpc", lambda url, method, params: {"sig": params[0]})
-    monkeypatch.setattr(sample, "launches_in_transaction", lambda tx: launches_per_tx[int(tx["sig"][3:])])
+    monkeypatch.setattr(sample, "launches_in_transaction",
+                        lambda tx: [{"mint": m, "bonding_curve": f"curve-{m}"} for m in launches_per_tx[int(tx["sig"][3:])]])
+    monkeypatch.setattr(sample, "bonding_curve_address", lambda m: f"curve-{m}")
 
-    def history(url, mint):
+    def history(url, address):
+        mint = address.removeprefix("curve-")
         if tx_counts[mint] is None:
             raise ValueError("too large")
         return [{"signature": f"{mint}-{k}", "blockTime": 1000 + k} for k in range(tx_counts[mint])]
@@ -36,4 +39,11 @@ def test_stops_once_enough_tokens(monkeypatch):
 def test_wrong_mint_authority_is_caught(monkeypatch):
     fake_chain(monkeypatch, [[] for _ in range(25)], {})
     with pytest.raises(RuntimeError, match="address is probably wrong"):
+        sample.choose_tokens("url")
+
+
+def test_mismatched_bonding_curve_is_caught(monkeypatch):
+    fake_chain(monkeypatch, [["A"]], {"A": 150})
+    monkeypatch.setattr(sample, "bonding_curve_address", lambda m: "something-else")
+    with pytest.raises(RuntimeError, match="mismatch"):
         sample.choose_tokens("url")
