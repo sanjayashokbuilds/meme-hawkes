@@ -57,9 +57,15 @@ def fit(times, types, T, n_types=2) -> dict:
 
     def objective(x):
         mu, alpha, beta = unpack(x)
-        if np.max(np.abs(np.linalg.eigvals(alpha / beta))) >= 0.999:
+        branching = alpha / beta
+        if not np.all(np.isfinite(branching)) or np.max(np.abs(np.linalg.eigvals(branching))) >= 0.999:
             return 1e12
-        return -log_likelihood(times, types, T, mu, alpha, beta)
+        value = -log_likelihood(times, types, T, mu, alpha, beta)
+        return value if np.isfinite(value) else 1e12
+
+    # Wide bounds on the log-parameters, so the optimiser can't wander off to
+    # numbers that overflow: decay memory between ~2.5 ms and ~6 hours.
+    bounds = [(-20, 5)] * d + [(-20, 6)] * (d * d) + [(-10, 6)]
 
     best = None
     for n0 in (0.1, 0.4):
@@ -67,7 +73,7 @@ def fit(times, types, T, n_types=2) -> dict:
             mu0 = np.maximum(counts / T * (1 - n0), 1e-6)
             alpha0 = np.full((d, d), n0 * beta0 / d)
             x0 = np.concatenate([np.log(mu0), np.log(alpha0).ravel(), [np.log(beta0)]])
-            result = optimize.minimize(objective, x0, method="L-BFGS-B")
+            result = optimize.minimize(objective, x0, method="L-BFGS-B", bounds=bounds)
             if best is None or result.fun < best.fun:
                 best = result
     mu, alpha, beta = unpack(best.x)

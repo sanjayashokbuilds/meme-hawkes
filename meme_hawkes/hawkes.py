@@ -64,13 +64,17 @@ def fit(times: np.ndarray, T: float) -> dict:
         return mu, n * beta, beta
 
     def negative_log_likelihood(x):
-        return -log_likelihood(times, T, *unpack(x))
+        value = -log_likelihood(times, T, *unpack(x))
+        return value if np.isfinite(value) else 1e12
+
+    # Wide bounds so the optimiser can't wander off to numbers that overflow.
+    bounds = [(-20, 5), (-10, 6), (-15, 15)]
 
     best = None
     for n0 in (0.2, 0.5, 0.8):
         for beta0 in (0.1, 1.0, 10.0):
             x0 = [np.log(rate * (1 - n0)), np.log(beta0), np.log(n0 / (1 - n0))]
-            result = optimize.minimize(negative_log_likelihood, x0, method="L-BFGS-B")
+            result = optimize.minimize(negative_log_likelihood, x0, method="L-BFGS-B", bounds=bounds)
             if best is None or result.fun < best.fun:
                 best = result
     mu, alpha, beta = unpack(best.x)

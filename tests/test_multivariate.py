@@ -53,3 +53,15 @@ def test_goodness_of_fit_passes_with_the_true_model():
     times, types = mv.simulate([0.05, 0.1], alpha, 2.0, 4000, rng)
     p = mv.goodness_of_fit(times, types, {"mu": np.array([0.05, 0.1]), "alpha": alpha, "beta": 2.0})
     assert min(p) > 0.05
+
+
+def test_awkward_data_does_not_crash_the_fit():
+    # Early trades crammed into the first half-second, then sparse ordinary trades:
+    # the kind of token that pushed the optimiser towards overflow on real data.
+    rng = np.random.default_rng(14)
+    early = np.sort(rng.uniform(0, 0.5, 40))
+    ordinary = np.sort(rng.uniform(0.5, 3000, 250))
+    times = np.concatenate([early, ordinary])
+    types = np.array([0] * 40 + [1] * 250)
+    est = mv.fit(times, types, 3000)
+    assert np.all(np.isfinite(est["branching"])) and est["spectral_radius"] < 1
