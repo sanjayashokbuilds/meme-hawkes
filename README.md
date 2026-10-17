@@ -12,7 +12,7 @@ The finished project is a web app: paste a pump.fun token address, get an excita
 ## Build progress
 - [x] Stage 0: scaffold
 - [x] Stage 1: foundations and literature ([concepts](docs/CONCEPTS.md), [literature](docs/LITERATURE.md))
-- [ ] Stage 2: data and wallet grouping
+- [ ] Stage 2: data and wallet grouping (data layer and tests done; real data pull next — see [data notes](docs/DATA.md))
 - [ ] Stage 3: univariate Hawkes, validated on simulated data
 - [ ] Stage 4: multivariate Hawkes and branching ratios
 - [ ] Stage 5: early-warning test against a baseline

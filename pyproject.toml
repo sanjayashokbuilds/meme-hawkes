@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+# Lets the tests import the meme_hawkes package when you run `pytest` from the repo root.
+pythonpath = ["."]
+testpaths = ["tests"]

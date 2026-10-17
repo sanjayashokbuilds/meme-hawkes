@@ -12,6 +12,8 @@ Newest at the bottom.
 | 4 | 1 | App input is a pump.fun token mint address | The method needs wallet identities, which stock exchanges don't publish | Stock tickers |
 | 5 | 1 | Wallet addresses are hashed in committed data and never shown in the app | Pseudonymous wallets; no public accusations of individuals | Publishing raw addresses |
 | 6 | 1 | The app shows a "warning" only if Stage 5 shows it beats the baseline | A public tool shouldn't present an unvalidated signal as a predictor | Always showing it |
+| 7 | 2 | "Early" wallet = first buy within 5 slots (~2 s) of launch; everyone else "ordinary" | Works on a single token (needed for the app) and is transparent; buying that fast effectively requires automation | Cross-token co-occurrence cohorts (needs many tokens; possible robustness check) |
+| 8 | 2 | Clock built from slot numbers × 0.4 s | Finer than block times (whole seconds) and keeps within-second order | Block times; error to be checked against real data |
 
 ## Open questions
 - Tied timestamps: Solana times are slot-level (~400 ms), so many trades share a time. Method to be chosen in Stage 3.
