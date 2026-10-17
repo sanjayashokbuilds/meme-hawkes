@@ -1,0 +1,17 @@
+# Secrets (API keys live here, never in the repo)
+.env
+
+# Raw API pulls: large and re-downloadable
+data/raw/*
+!data/raw/.gitkeep
+
+# Python clutter
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS clutter
+.DS_Store
+Thumbs.db
