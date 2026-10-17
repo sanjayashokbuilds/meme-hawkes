@@ -42,6 +42,16 @@ def test_clock_is_calibrated_to_real_block_times():
     assert out["t"].iloc[-1] == pytest.approx(990 * 0.25, rel=0.02)
 
 
+def test_spread_ties_breaks_ties_inside_the_slot_and_keeps_order():
+    import numpy as np
+    from meme_hawkes.clean import spread_ties
+    df = clean_trades(tiny_token())                      # two trades share slot 100
+    t = spread_ties(df, np.random.default_rng(0)).to_numpy()
+    assert len(set(t)) == len(t)                         # no ties left
+    assert all(np.diff(t) > 0)                           # order kept
+    assert all((t >= df["t"]) & (t < df["t"] + 0.4))     # each stays inside its slot
+
+
 def test_early_wallets_keep_their_label_when_selling():
     df = label_groups(clean_trades(tiny_token()))
     assert list(df["event_type"]) == ["early_buy", "early_buy", "ordinary_buy", "early_sell"]

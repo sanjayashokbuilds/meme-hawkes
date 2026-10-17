@@ -37,6 +37,21 @@ Ruled out: Dune (free tier is view-only), Bitquery (trial of about 200 calls, re
 
 **Check on real data:** the decoder is tested on hand-built events, but pump.fun can append fields to its events over time. `scripts/fetch_one.py` runs it on a real token. If the first fields ever moved, it decodes zero trades for the token and says so, rather than producing wrong numbers.
 
+## The sample (pre-registered, see `meme_hawkes/sample.py`)
+1. Population: every pump.fun token launched between 6 and 2 hours before the pull, so each first hour is complete.
+2. Shuffled with a fixed seed (2026).
+3. Kept if it had at least 100 successful transactions in its first hour.
+4. Stop at 40 tokens. `data/raw/sample_log.csv` records every token checked and why it was kept or dropped.
+
+Each kept token contributes its first hour of bonding-curve trades, capped at 1,000 transactions. Trades after graduation happen on a different program and aren't included.
+
+## Pump-and-dump labels (pre-registered, see `meme_hawkes/labels.py`)
+- **Primary:** the price peaks at least 2× above its lowest earlier level, then falls to half the peak or lower, within the first hour. The *dump time* is the first trade at or below half the peak.
+- **Sensitivity:** the same with Mongardini & Mei's thresholds (+50%, −30%).
+- Price only, so the label never uses wallet groups or trade timing, which are the model's inputs.
+
+Both rules were committed (Stage 2c) before any model was fitted to real data.
+
 ## Wallet groups
 A wallet is **early** on a token if its first buy lands in the first 5 slots (~2 seconds) of that token's trading. Everyone else is **ordinary**.
 - Why: buying within ~2 seconds of launch effectively requires automation, and coordinated sniper groups concentrate in those first slots.
@@ -47,9 +62,8 @@ A wallet is **early** on a token if its first buy lands in the first 5 slots (~2
 ## Privacy
 Wallet addresses are replaced by salted 12-character hashes (`anonymise_wallets`) before any data is committed. The salt lives in `.env`, never in the repo.
 
-## Still to do to finish Stage 2
-1. Run `scripts/fetch_one.py` on one real token and check the output makes sense.
-2. **Fix the token sample and the pump-and-dump labelling rule *before* fitting any Hawkes model**, so the evaluation can't be tuned to the result.
-3. Pull the sample and save it to `data/raw/` (not committed). Save the cleaned, anonymised table to `data/processed/`.
-4. Check the slot clock against real block times and record the error here.
-5. Record the credits used per token from the Helius dashboard.
+## Pulling it
+`python scripts/pull_sample.py` (about an hour on the free tier; safe to stop and re-run). Outputs:
+- `data/raw/`: per-token trades with real wallet addresses. Not committed.
+- `data/processed/trades.csv`: all trades, cleaned, grouped, wallets hashed, signatures dropped.
+- `data/processed/labels.csv`: one row per token.

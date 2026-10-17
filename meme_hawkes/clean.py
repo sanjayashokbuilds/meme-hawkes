@@ -2,6 +2,7 @@
 
 import hashlib
 
+import numpy as np
 import pandas as pd
 
 from .schema import validate_trades
@@ -53,6 +54,20 @@ def clean_trades(df: pd.DataFrame) -> pd.DataFrame:
     df["t"] = (df["slot"] - first_slot) * df["seconds_per_slot"]
     df["slot_ties"] = df.groupby(["mint", "slot"])["slot"].transform("size")
     return df
+
+
+def spread_ties(df: pd.DataFrame, rng) -> pd.Series:
+    """Event times with no two trades at exactly the same moment.
+
+    A Hawkes process assumes events never coincide, but trades in one slot
+    share a time. Each trade is placed at a random point inside its slot,
+    keeping the within-slot order. Re-running with other seeds shows whether
+    results depend on the random placement (they shouldn't).
+    """
+    offsets = df.groupby(["mint", "slot"])["t"].transform(
+        lambda g: np.sort(rng.uniform(0, 1, size=len(g)))
+    )
+    return df["t"] + offsets * df["seconds_per_slot"]
 
 
 def anonymise_wallets(df: pd.DataFrame, salt: str) -> pd.DataFrame:
