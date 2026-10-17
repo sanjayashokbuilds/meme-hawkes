@@ -13,8 +13,10 @@
 set -e  # stop at the first error, so nothing broken gets pushed
 
 cd "$(dirname "$0")/.."                       # the repo root, wherever you run this from
-# The newest zip named after this stage's tag (e.g. meme-hawkes-stage-3.zip or "... (1).zip")
-ZIP=$(ls -t ~/Downloads/meme-hawkes-"$2"*.zip | head -1)
+# The newest zip named exactly after this stage's tag: meme-hawkes-stage-5.zip or "meme-hawkes-stage-5 (1).zip",
+# but never meme-hawkes-stage-5b.zip.
+ZIP=$(ls -t ~/Downloads/meme-hawkes-"$2".zip ~/Downloads/meme-hawkes-"$2"\ \(*\).zip 2>/dev/null | head -1)
+[ -n "$ZIP" ] || { echo "No zip for $2 in Downloads"; exit 1; }
 echo "Unpacking: $ZIP"
 unzip -oq "$ZIP" -d ..                        # the zip holds a meme-hawkes/ folder
 

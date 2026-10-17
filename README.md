@@ -15,7 +15,7 @@ The finished project is a web app: paste a pump.fun token address, get an excita
 - [x] Stage 2: data, wallet grouping, pre-registered sample and pump-and-dump rule ([data notes](docs/DATA.md))
 - [x] Stage 3: univariate Hawkes from scratch, validated on simulated data ([validation](docs/VALIDATION.md))
 - [x] Stage 4: multivariate Hawkes from scratch, validated ([validation](docs/VALIDATION_MULTIVARIATE.md)); real-data results in [results](docs/RESULTS.md)
-- [ ] Stage 5: early-warning test against a baseline
+- [x] Stage 5: early-warning test against baselines ([results](docs/RESULTS.md#stage-5-early-warning-test))
 - [ ] Stage 6: dashboard
 - [ ] Stage 7: write-up
 

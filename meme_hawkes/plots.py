@@ -14,7 +14,7 @@ plt.rcParams.update({
     "axes.edgecolor": INK_SOFT, "axes.labelcolor": INK_SOFT, "text.color": INK,
     "xtick.color": INK_SOFT, "ytick.color": INK_SOFT, "axes.grid": True, "grid.color": GRID,
     "grid.linewidth": 0.8, "axes.spines.top": False, "axes.spines.right": False,
-    "font.size": 10, "axes.titlesize": 11, "axes.titleweight": "bold", "axes.titlelocation": "left",
+    "axes.axisbelow": True, "font.size": 10, "axes.titlesize": 11, "axes.titleweight": "bold", "axes.titlelocation": "left",
 })
 
 
