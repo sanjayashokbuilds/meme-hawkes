@@ -45,3 +45,12 @@ def test_rescaled_gaps_pass_with_true_model_and_fail_with_wrong_one():
     poisson = {"mu": len(times) / 3000, "alpha": 1e-9, "beta": 1.0}  # no self-excitation
     assert hawkes.goodness_of_fit(times, true) > 0.05
     assert hawkes.goodness_of_fit(times, poisson) < 0.01  # the test can tell the difference
+
+
+def test_rolling_branching_ratio_rises_when_excitation_rises():
+    rng = np.random.default_rng(5)
+    calm = hawkes.simulate(0.5, 0.2, 1.0, 600, rng)              # n = 0.2
+    frenzy = 600 + hawkes.simulate(0.2, 0.8, 1.0, 600, rng)      # n = 0.8
+    rolling = hawkes.rolling_branching_ratio(np.concatenate([calm, frenzy]), window=300, step=300)
+    n = [r["n"] for r in rolling]
+    assert n[0] < 0.4 and n[-1] > 0.6

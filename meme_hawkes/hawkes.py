@@ -117,3 +117,24 @@ def goodness_of_fit(times: np.ndarray, params: dict) -> float:
     """
     gaps = rescaled_gaps(times, params["mu"], params["alpha"], params["beta"])
     return float(stats.kstest(gaps, "expon").pvalue)
+
+
+def rolling_branching_ratio(times: np.ndarray, window: float, step: float, min_events: int = 30) -> list[dict]:
+    """Branching ratio re-estimated on a sliding window, using only the past.
+
+    At each check time t (every `step` seconds), fit the model to the events in
+    [t - window, t]. Each estimate only uses data available at time t, so it can
+    be used as a real-time warning signal without peeking at the future.
+    Windows with fewer than min_events events give no estimate.
+    Edge effect, accepted for simplicity: excitation left over from events just
+    before the window is ignored.
+    """
+    times = np.asarray(times, float)
+    out = []
+    for t in np.arange(window, times[-1] + step, step) if len(times) else []:
+        inside = times[(times > t - window) & (times <= t)]
+        row = {"t": float(t), "events": len(inside), "n": np.nan}
+        if len(inside) >= min_events:
+            row["n"] = fit(inside - (t - window), window)["n"]
+        out.append(row)
+    return out

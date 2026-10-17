@@ -14,13 +14,15 @@ The finished project is a web app: paste a pump.fun token address, get an excita
 - [x] Stage 1: foundations and literature ([concepts](docs/CONCEPTS.md), [literature](docs/LITERATURE.md))
 - [x] Stage 2: data, wallet grouping, pre-registered sample and pump-and-dump rule ([data notes](docs/DATA.md))
 - [x] Stage 3: univariate Hawkes from scratch, validated on simulated data ([validation](docs/VALIDATION.md))
-- [ ] Stage 4: multivariate Hawkes and branching ratios
+- [x] Stage 4: multivariate Hawkes from scratch, validated ([validation](docs/VALIDATION_MULTIVARIATE.md)); real-data results in [results](docs/RESULTS.md)
 - [ ] Stage 5: early-warning test against a baseline
 - [ ] Stage 6: dashboard
 - [ ] Stage 7: write-up
 
 ## Validation so far
 Before touching real data, the estimator was run on 100 simulated trade histories per scenario with known parameters. It recovers the branching ratio with negligible bias. The spread is about ±0.04 at 1,000 trades and about ±0.06 at 300 trades. Full table in [`docs/VALIDATION.md`](docs/VALIDATION.md).
+
+The two-type model (early-slot wallets vs ordinary wallets) was checked the same way, at real token sizes (~40 early and ~300 ordinary trades). It recovers a planted early→ordinary effect without bias (0.50 → 0.505, spread ±0.16). With no planted effect, 95% of estimates stay below 0.12, so it doesn't invent cross-excitation. Details in [`docs/VALIDATION_MULTIVARIATE.md`](docs/VALIDATION_MULTIVARIATE.md).
 
 ![Recovery of the branching ratio on simulated data](figures/recovery.png)
 
