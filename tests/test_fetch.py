@@ -101,3 +101,17 @@ def test_real_usdc_priced_trade_is_decoded_in_usdc():
     assert event["side"] == "buy" and event["sol_amount"] == 0
     assert event["quote"] == "USDC" and event["amount"] == pytest.approx(17.913488)
     assert event["price"] == pytest.approx(4309.913488 / 1_068_540_241.68938)
+
+
+def test_unknown_quote_currency_is_found_from_the_transaction_balances():
+    # A token priced in a currency not listed in advance (9 decimals here).
+    new_quote = bytes(range(100, 132))
+    body = EVENT_LAYOUT.pack(MINT, 0, 999, True, USER, 1_700_000_000, 0, 1_000_000_000 * 10**6)
+    body += b"\x00" * 40 + new_quote + struct.pack("<QQ", 2 * 10**9, 50 * 10**9)  # paid 2, reserves 50
+    tx = {"meta": {
+        "innerInstructions": [{"instructions": [{"data": base58.b58encode(TRADE_EVENT + body).decode()}]}],
+        "postTokenBalances": [{"mint": base58.b58encode(new_quote).decode(), "uiTokenAmount": {"decimals": 9}}],
+    }}
+    [event] = events_in_transaction(tx)
+    assert event["amount"] == 2.0
+    assert event["price"] == pytest.approx(50 / 1e9)

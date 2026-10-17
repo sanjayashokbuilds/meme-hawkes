@@ -124,8 +124,11 @@ def list_signatures(url: str, address: str, max_pages: int = 50) -> list[dict]:
     raise ValueError(f"over {max_pages * 1000:,} transactions: too large for a free-tier lookup")
 
 
-def decode_trade_events(raw: bytes) -> list[dict]:
-    """Find every TradeEvent in a blob of bytes and unpack it."""
+def decode_trade_events(raw: bytes, quotes: dict = QUOTE_TOKENS) -> list[dict]:
+    """Find every TradeEvent in a blob of bytes and unpack it.
+
+    quotes: candidate quote tokens, {mint: (name, decimals)}, for tokens not priced in SOL.
+    """
     events = []
     start = raw.find(TRADE_EVENT)
     while start != -1:
@@ -138,7 +141,9 @@ def decode_trade_events(raw: bytes) -> list[dict]:
                 # (SOL has 9 decimals, pump.fun tokens 6).
                 price = (v_sol / 1e9) / (v_tok / 1e6)
             else:
-                for quote_mint, (name, decimals) in QUOTE_TOKENS.items():
+                for quote_mint, (name, decimals) in quotes.items():
+                    if base58.b58decode(quote_mint) == mint:
+                        continue  # the token itself is never its own quote
                     q = body.find(base58.b58decode(quote_mint), EVENT_LAYOUT.size)
                     if q != -1 and len(body) >= q + 48:
                         q_amount, v_quote = struct.unpack_from("<QQ", body, q + 32)
@@ -198,8 +203,18 @@ def _decode(tx: dict, decoder) -> list:
 
 
 def events_in_transaction(tx: dict) -> list[dict]:
-    """Every pump.fun trade recorded in a transaction."""
-    return _decode(tx, decode_trade_events)
+    """Every pump.fun trade recorded in a transaction.
+
+    Tokens not priced in SOL carry their quote token's address inside the event.
+    Every token whose balance changed in the transaction (with its decimals) is a
+    candidate, so a new quote currency is picked up without being listed in advance.
+    """
+    meta = tx["meta"]
+    quotes = dict(QUOTE_TOKENS)
+    for b in (meta.get("preTokenBalances") or []) + (meta.get("postTokenBalances") or []):
+        if b.get("mint") and b["mint"] not in quotes:
+            quotes[b["mint"]] = (b["mint"][:4], b["uiTokenAmount"]["decimals"])
+    return _decode(tx, lambda raw: decode_trade_events(raw, quotes))
 
 
 def launches_in_transaction(tx: dict) -> list[dict]:

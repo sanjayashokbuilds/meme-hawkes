@@ -1,8 +1,10 @@
 """Pull the research sample, then build the processed dataset.
 
 Usage (from the repo root):
-    python scripts/pull_sample.py            # choose tokens, fetch them, build dataset
-    python scripts/pull_sample.py --build    # only rebuild the dataset from what's downloaded
+    python scripts/pull_sample.py             # choose tokens, fetch them, build dataset
+    python scripts/pull_sample.py --refetch   # re-fetch only tokens that are missing or have no
+                                              # usable prices (same sample), then build
+    python scripts/pull_sample.py --build     # only rebuild the dataset from what's downloaded
 
 Safe to stop (Ctrl-C) and re-run: tokens already downloaded are skipped.
 Takes roughly an hour on the Helius free tier, so leave it running in its own
@@ -46,25 +48,53 @@ def pull():
         trades.to_csv(path, index=False)
 
 
+def kept_mints() -> list[str]:
+    log = pd.read_csv(RAW / "sample_log.csv")
+    return list(log.loc[log["kept"], "mint"])
+
+
+def refetch():
+    """Re-download tokens that are missing or have no usable prices, keeping the same sample."""
+    url = rpc_url()
+    for mint in kept_mints():
+        path = RAW / f"{mint}.csv"
+        if path.exists() and pd.read_csv(path)["price"].notna().any():
+            continue
+        print(f"re-fetching {mint}")
+        fetch_token_trades(mint, max_transactions=1000, first_seconds=3600, url=url).to_csv(path, index=False)
+
+
 def build():
     salt = os.getenv("ANONYMISE_SALT")
     if not salt:
         sys.exit("Set ANONYMISE_SALT in .env first (any long random string).")
-    log = pd.read_csv(RAW / "sample_log.csv")
-    files = [RAW / f"{m}.csv" for m in log.loc[log["kept"], "mint"] if (RAW / f"{m}.csv").exists()]
+    files = [RAW / f"{m}.csv" for m in kept_mints() if (RAW / f"{m}.csv").exists()]
     trades = label_groups(clean_trades(pd.concat([pd.read_csv(f) for f in files])))
     labels = label_sample(trades)
+
+    # Per-token check, printed every time so problems are visible straight away.
+    check = trades.groupby("mint").agg(trades=("price", "size"), wallets=("wallet", "nunique"),
+                                       priced=("price", lambda p: int(p.notna().sum())), quote=("quote", "first"))
+    check.index = check.index.str[:6]
+    print(check.sort_values("trades").to_string())
+
+    labelled = labels[labels["pump_and_dump"].notna()]
+    unpriced = labels.loc[labels["pump_and_dump"].isna(), "mint"].str[:6].tolist()
     anonymise_wallets(trades, salt).drop(columns=["signature"]).to_csv(PROCESSED / "trades.csv", index=False)
     labels.to_csv(PROCESSED / "labels.csv", index=False)
-    print(f"{len(files)} tokens, {len(trades):,} trades. "
-          f"Pump-and-dumps: {labels['pump_and_dump'].sum()} (primary rule), "
-          f"{labels['pump_and_dump_mm'].sum()} (looser rule).")
+    print(f"\n{len(files)} tokens, {len(trades):,} trades. Quotes: {check['quote'].value_counts().to_dict()}")
+    print(f"Pump-and-dumps: {labelled['pump_and_dump'].astype(bool).sum()} of {len(labelled)} labelled tokens "
+          f"(primary rule), {labelled['pump_and_dump_mm'].astype(bool).sum()} (looser rule).")
+    if unpriced:
+        print(f"WARNING: no usable prices for {unpriced}: run with --refetch, and tell Claude if it persists.")
 
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(".env")
     RAW.mkdir(parents=True, exist_ok=True)
     PROCESSED.mkdir(parents=True, exist_ok=True)
-    if "--build" not in sys.argv:
+    if "--refetch" in sys.argv:
+        refetch()
+    elif "--build" not in sys.argv:
         pull()
     build()

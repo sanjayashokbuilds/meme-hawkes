@@ -28,3 +28,7 @@ def test_sensitivity_rule_is_looser():
     row = label_sample(trades).iloc[0]
     assert not row["pump_and_dump"]          # +60% isn't a doubling
     assert row["pump_and_dump_mm"]           # but it is +50% then -30%
+
+
+def test_token_without_prices_is_left_unlabelled_not_crashed():
+    assert label_token(T, [np.nan] * 6)["pump_and_dump"] is None

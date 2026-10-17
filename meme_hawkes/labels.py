@@ -25,6 +25,8 @@ import pandas as pd
 def label_token(t: pd.Series, price: pd.Series, pump: float = 2.0, dump: float = 0.5) -> dict:
     """Apply the rule to one token's trade times and post-trade prices (in time order)."""
     t, price = np.asarray(t, float), np.asarray(price, float)
+    if np.all(np.isnan(price)):  # no usable prices: can't be labelled, so excluded later
+        return {"pump_and_dump": None, "peak_time": np.nan, "dump_time": np.nan, "peak_over_low": np.nan}
     peak_i = int(np.nanargmax(price))
     low_before = np.nanmin(price[: peak_i + 1])
     pumped = price[peak_i] >= pump * low_before
@@ -45,5 +47,6 @@ def label_sample(trades: pd.DataFrame) -> pd.DataFrame:
     for mint, g in trades.sort_values(["mint", "t"]).groupby("mint"):
         primary = label_token(g["t"], g["price"])
         sensitivity = label_token(g["t"], g["price"], pump=1.5, dump=0.7)
-        rows.append({"mint": mint, **primary, "pump_and_dump_mm": sensitivity["pump_and_dump"]})
+        rows.append({"mint": mint, **primary, "pump_and_dump_mm": sensitivity["pump_and_dump"],
+                     "quote": g["quote"].iloc[0] if "quote" in g else "SOL"})
     return pd.DataFrame(rows)
