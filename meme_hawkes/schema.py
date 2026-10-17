@@ -1,8 +1,7 @@
 """The one table format every data source must produce.
 
-One row = one trade on one token. Whether the data came from Dune or Helius,
-it is converted into exactly these columns, so nothing downstream needs to
-know where it came from.
+One row = one trade on one token. Any data source must produce exactly these
+columns, so nothing downstream needs to know where the data came from.
 """
 
 import pandas as pd
@@ -10,7 +9,7 @@ import pandas as pd
 TRADE_COLUMNS = {
     "mint": "token address (identifies the token)",
     "slot": "Solana slot number (one slot is roughly 400 ms)",
-    "tx_index": "position of the transaction inside its slot (orders same-slot trades)",
+    "tx_index": "order of the trade within its slot (any increasing number works)",
     "signature": "transaction id (used to drop duplicate rows)",
     "wallet": "address of the wallet that traded",
     "side": "'buy' or 'sell'",

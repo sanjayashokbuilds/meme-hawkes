@@ -3,6 +3,7 @@ scipy
 pandas
 matplotlib
 requests
+base58
 python-dotenv
 pytest
 jupyter

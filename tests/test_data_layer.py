@@ -28,6 +28,20 @@ def test_clean_drops_duplicates_and_builds_clock():
     assert list(df["slot_ties"]) == [2, 2, 1, 1]          # two trades share slot 100
 
 
+def test_clock_is_calibrated_to_real_block_times():
+    # 100 trades, one every 10 slots, where block times say each slot lasts 0.25 s.
+    slots = list(range(1000, 2000, 10))
+    df = pd.DataFrame({
+        "mint": "TOK", "slot": slots, "tx_index": 0,
+        "signature": [f"s{i}" for i in range(100)], "wallet": "A", "side": "buy",
+        "sol_amount": 0.1,
+        "block_time": [1_700_000_000 + int((s - 1000) * 0.25) for s in slots],  # whole seconds
+    })
+    out = clean_trades(df)
+    assert out["seconds_per_slot"].iloc[0] == pytest.approx(0.25, abs=0.01)
+    assert out["t"].iloc[-1] == pytest.approx(990 * 0.25, rel=0.02)
+
+
 def test_early_wallets_keep_their_label_when_selling():
     df = label_groups(clean_trades(tiny_token()))
     assert list(df["event_type"]) == ["early_buy", "early_buy", "ordinary_buy", "early_sell"]

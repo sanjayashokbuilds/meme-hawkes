@@ -6,15 +6,19 @@ Newest at the bottom.
 | # | Stage | Decision | Why | Alternative considered |
 |---|---|---|---|---|
 | 1 | 0 | Write the Hawkes simulation and estimation from scratch in numpy/scipy | So every step is understood and checkable, rather than trusting a library as a black box | `tick` or `hawkeslib` (may use later only to cross-check our estimates) |
-
 | 2 | 1 | Don't use the RED-COHORT-2026-v1 cohort list as ground truth | The source paper's October 2026 correction withdraws its numbers because the buyer records were faulty | Using it anyway with a caveat |
-| 3 | 1 | Research sample from a Dune trial; live app lookups from Helius | Bitquery's trial is about 200 calls with recent data only; Dune's free tier is view-only (its 14-day trial has 2,500 credits); Helius has a permanent free tier (1M credits/month) | Bitquery for both |
+| 3 | 2 | All data straight from the Solana blockchain via standard RPC calls, using a free Helius key (public endpoint as a no-account fallback) | Completely free with no card; one source for both research and the app; standard methods mean no lock-in | Dune trial (needs a trial), Bitquery trial (~200 calls, recent data only), pump.fun's own site feed (unofficial, can break) |
 | 4 | 1 | App input is a pump.fun token mint address | The method needs wallet identities, which stock exchanges don't publish | Stock tickers |
 | 5 | 1 | Wallet addresses are hashed in committed data and never shown in the app | Pseudonymous wallets; no public accusations of individuals | Publishing raw addresses |
 | 6 | 1 | The app shows a "warning" only if Stage 5 shows it beats the baseline | A public tool shouldn't present an unvalidated signal as a predictor | Always showing it |
 | 7 | 2 | "Early" wallet = first buy within 5 slots (~2 s) of launch; everyone else "ordinary" | Works on a single token (needed for the app) and is transparent; buying that fast effectively requires automation | Cross-token co-occurrence cohorts (needs many tokens; possible robustness check) |
-| 8 | 2 | Clock built from slot numbers × 0.4 s | Finer than block times (whole seconds) and keeps within-second order | Block times; error to be checked against real data |
+| 8 | 2 | Clock = slots elapsed × slot length *measured per token* (slope of block time on slot) | First real token: a fixed 0.4 s/slot said 150 s, block times said 82 s (~0.22 s/slot). Slots give precise order; block times give the true scale | Fixed 0.4 s/slot (wrong on real data); block times alone (whole seconds, more ties) |
+| 9 | 2 | Read trades by decoding pump.fun's own TradeEvent records (mint, SOL amount, buy/sell, wallet) | These are written by the pump.fun program itself, so they're the most direct record of each trade; events for other tokens are filtered out by mint | Inferring trades from balance changes (indirect, error-prone) |
+| 10 | 2 | Analyse each token's earliest transactions (default 1,000) | Fetching is one call per transaction, so whole histories are slow; the early-warning question is about the early phase anyway | Full histories (much slower on free limits) |
+| 11 | 2 | The project reads public blockchain data only and the app never links to trading on pump.fun | pump.fun's site is region-restricted in the UK; analysing public on-chain data is research, facilitating trading is not | Linking token pages to pump.fun |
 
 ## Open questions
 - Tied timestamps: Solana times are slot-level (~400 ms), so many trades share a time. Method to be chosen in Stage 3.
-- Helius credit cost per token lookup: to measure in Stage 2 and set the app's caching and limits accordingly.
+- Within-slot order: we keep the order the RPC returns. To verify against a block explorer on a few trades.
+- Credits per token lookup: expected about 1 per transaction fetched; to measure on real data.
+- Bot churn: on the first real token, 120 trades came from 15 wallets, one buying and selling every second or so. The early-slot rule labels such wallets "ordinary". Consider a third group (very-high-frequency wallets) in Stage 4.

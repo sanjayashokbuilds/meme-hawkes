@@ -24,7 +24,8 @@ fetch   →   clean   →   group   →   fit   →   report   →   app
 ```
 
 - **Every layer takes a pandas table in and gives a table or numbers out.** The app never contains maths; it just calls `report`.
-- **The fetch layer is swappable.** Research data comes from a Dune trial; live lookups in the app come from Helius, which has a permanent free tier. Both produce the same table, so nothing downstream cares where data came from.
+- **The fetch layer is swappable.** Research data and live app lookups both come straight from the Solana blockchain through standard RPC calls (a free Helius key, or the public endpoint). Any future source just has to produce the same table, so nothing downstream cares where data came from.
+- **The app analyses a token's earliest trades** (first 1,000 transactions by default), because fetching is one call per transaction on the free tier.
 - **Wallet grouping must work on one token at a time**, because that's all the app sees for a live lookup.
 - **The app never displays wallet addresses.** It shows aggregate shares and excitation, not "these wallets are scammers".
 - **The app shows a warning signal only if Stage 5 shows it beats the baseline.** Otherwise it shows descriptive measures and says plainly that they aren't a validated predictor.
