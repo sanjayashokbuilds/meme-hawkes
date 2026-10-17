@@ -4,6 +4,7 @@ Usage (from the repo root):
     python scripts/pull_sample.py             # choose tokens, fetch them, build dataset
     python scripts/pull_sample.py --refetch   # re-fetch only tokens that are missing or have no
                                               # usable prices (same sample), then build
+    python scripts/pull_sample.py --refetch-all   # re-fetch every token's full first hour (same sample)
     python scripts/pull_sample.py --build     # only rebuild the dataset from what's downloaded
 
 Safe to stop (Ctrl-C) and re-run: tokens already downloaded are skipped.
@@ -38,13 +39,13 @@ def pull():
     url = rpc_url()
     kept, log = choose_tokens(url)
     pd.DataFrame(log).to_csv(RAW / "sample_log.csv", index=False)
-    print(f"\nSample: {len(kept)} tokens. Fetching their first-hour trades (max 1,000 transactions each).")
+    print(f"\nSample: {len(kept)} tokens. Fetching their full first-hour trades.")
     for i, token in enumerate(kept, 1):
         path = RAW / f"{token['mint']}.csv"
         if path.exists():
             continue
         print(f"[{i}/{len(kept)}] {token['mint']}")
-        trades = fetch_token_trades(token["mint"], max_transactions=1000, signatures=token["signatures"], url=url)
+        trades = fetch_token_trades(token["mint"], first_seconds=3600, signatures=token["signatures"], url=url)
         trades.to_csv(path, index=False)
 
 
@@ -53,15 +54,15 @@ def kept_mints() -> list[str]:
     return list(log.loc[log["kept"], "mint"])
 
 
-def refetch():
-    """Re-download tokens that are missing or have no usable prices, keeping the same sample."""
+def refetch(everything: bool = False):
+    """Re-download tokens (all, or just missing/unpriced ones), keeping the same sample."""
     url = rpc_url()
     for mint in kept_mints():
         path = RAW / f"{mint}.csv"
-        if path.exists() and pd.read_csv(path)["price"].notna().any():
+        if not everything and path.exists() and pd.read_csv(path)["price"].notna().any():
             continue
         print(f"re-fetching {mint}")
-        fetch_token_trades(mint, max_transactions=1000, first_seconds=3600, url=url).to_csv(path, index=False)
+        fetch_token_trades(mint, first_seconds=3600, url=url).to_csv(path, index=False)
 
 
 def build():
@@ -93,7 +94,9 @@ if __name__ == "__main__":
     load_dotenv(".env")
     RAW.mkdir(parents=True, exist_ok=True)
     PROCESSED.mkdir(parents=True, exist_ok=True)
-    if "--refetch" in sys.argv:
+    if "--refetch-all" in sys.argv:
+        refetch(everything=True)
+    elif "--refetch" in sys.argv:
         refetch()
     elif "--build" not in sys.argv:
         pull()

@@ -27,6 +27,8 @@ Newest at the bottom.
 | 20 | 2 | Bonding-curve address derived offline (seeds "bonding-curve" + mint), checked against every launch record during sampling | No extra network calls; verified against real chain data in the tests | Reading it from each token's launch transaction |
 | 21 | 2 | Tokens priced in USDC are decoded from the event's quote fields; price = USDC per token | The first pull found 5 of 40 tokens priced in USDC (pump.fun's newer V2 instructions); their SOL fields are zero. Labels use price *ratios*, so mixing currencies is fine | Dropping non-SOL tokens (would bias the sample) |
 | 22 | 2 | Quote currency detected per transaction: any token whose balance changed is a candidate, and the one whose address appears in the trade record is the quote (decimals from the balance record). Tokens with no usable prices are left unlabelled, not guessed | The second pull hit a token priced in a currency not seen before; detecting it from the transaction avoids hard-coding a list that pump.fun can outgrow | Hard-coding each new quote currency as it appears |
+| 23 | 2 | Fetch each token's **full first hour** with Helius's batch method (oldest first, exact in-block order); replaces the 1,000-transaction cap (#10). Falls back to one call per transaction if unavailable | Sniper-bot spam: one token's curve had 1,000 transactions in its first 11 seconds, 95% of them non-trades from a single bot program. The cap meant some tokens were observed for seconds, not an hour | Raising the cap (still arbitrary, much slower) |
+| 24 | 4 | **Analysis inclusion (fixed before any model fit):** Hawkes models are fitted only to tokens with ≥100 decoded trades in their first hour; others are listed, not fitted | Reflects the intent of the sampling filter (#12), which, it turned out, also counted bot spam. Validation shows estimates get noisy below a few hundred events | Fitting every token regardless of size |
 
 ## Known limitations so far
 - **n < 1 by construction.** A pump could genuinely be explosive (n ≥ 1) for a while. Estimates pressing against 1 should be read as "at least near-critical", not as exact values.
@@ -37,4 +39,6 @@ Newest at the bottom.
 - Tied timestamps: Solana times are slot-level (~400 ms), so many trades share a time. Method to be chosen in Stage 3.
 - Within-slot order: we keep the order the RPC returns. To verify against a block explorer on a few trades.
 - Credits per token lookup: expected about 1 per transaction fetched; to measure on real data.
+- Sniper-bot spam touches the bonding curve without trading, so the sampling filter's "≥100 transactions" partly counted spam. Handled by #24 rather than re-drawing the sample.
+- Wash trading: some tokens have hundreds of trades from 4–6 wallets. Stage 4 must stop these loops being read as crowd excitation.
 - Bot churn: on the first real token, 120 trades came from 15 wallets, one buying and selling every second or so. The early-slot rule labels such wallets "ordinary". Consider a third group (very-high-frequency wallets) in Stage 4.

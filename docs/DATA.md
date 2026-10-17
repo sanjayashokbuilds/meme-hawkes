@@ -44,7 +44,7 @@ Ruled out: Dune (free tier is view-only), Bitquery (trial of about 200 calls, re
 3. Kept if it had at least 100 successful bonding-curve transactions (trades) in its first hour. *Amendment 1: originally "transactions touching the mint"; see `DECISIONS.md` #19.*
 4. Stop at 40 tokens. `data/raw/sample_log.csv` records every token checked and why it was kept or dropped.
 
-Each kept token contributes its first hour of bonding-curve trades, capped at 1,000 transactions. Trades after graduation happen on a different program and aren't included.
+Each kept token contributes its **full first hour** of bonding-curve trades, fetched with Helius's batch method (`getTransactionsForAddress`, oldest first, with each transaction's exact position in its block). Model fits use only tokens with at least 100 trades in that hour (decision #24). Trades after graduation happen on a different program and aren't included.
 
 ## Pump-and-dump labels (pre-registered, see `meme_hawkes/labels.py`)
 - **Primary:** the price peaks at least 2× above its lowest earlier level, then falls to half the peak or lower, within the first hour. The *dump time* is the first trade at or below half the peak.

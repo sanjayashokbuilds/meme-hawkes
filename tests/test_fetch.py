@@ -115,3 +115,38 @@ def test_unknown_quote_currency_is_found_from_the_transaction_balances():
     [event] = events_in_transaction(tx)
     assert event["amount"] == 2.0
     assert event["price"] == pytest.approx(50 / 1e9)
+
+
+def test_batch_fetch_pages_and_stops_after_the_window(monkeypatch):
+    from meme_hawkes import fetch
+    mint = base58.b58encode(MINT).decode()
+    trade = base58.b58encode(fake_trade()).decode()
+
+    def item(t, idx):
+        return {"slot": 100 + t, "transactionIndex": idx, "blockTime": 1000 + t,
+                "transaction": {"signatures": [f"sig{t}-{idx}"]},
+                "meta": {"innerInstructions": [{"instructions": [{"data": trade}]}]}}
+
+    pages = {None: {"data": [item(0, 3), item(0, 7)], "paginationToken": "p2"},
+             "p2": {"data": [item(50, 1), item(4000, 0)], "paginationToken": "p3"}}  # last one is past the hour
+    monkeypatch.setattr(fetch, "rpc", lambda url, method, params: pages[params[1].get("paginationToken")])
+    df = fetch.fetch_first_hour(mint, 3600, url="https://mainnet.helius-rpc.com/?api-key=x")
+    assert len(df) == 3                                   # the trade after one hour is excluded
+    assert list(df["tx_index"]) == [3000, 7000, 1000]     # real position within each block
+
+
+def test_falls_back_when_batch_method_is_refused(monkeypatch):
+    from meme_hawkes import fetch
+
+    def refuse(url, method, params):
+        if method == "getTransactionsForAddress":
+            raise RuntimeError("method not available on this plan")
+        if method == "getSignaturesForAddress":
+            return [{"signature": "s1", "err": None, "blockTime": 1000}]
+        return {"slot": 5, "blockTime": 1000,
+                "meta": {"innerInstructions": [{"instructions": [{"data": base58.b58encode(fake_trade()).decode()}]}]}}
+
+    monkeypatch.setattr(fetch, "rpc", refuse)
+    df = fetch.fetch_token_trades(base58.b58encode(MINT).decode(), first_seconds=3600,
+                                  url="https://mainnet.helius-rpc.com/?api-key=x")
+    assert len(df) == 1

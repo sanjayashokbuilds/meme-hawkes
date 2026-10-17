@@ -222,6 +222,46 @@ def launches_in_transaction(tx: dict) -> list[dict]:
     return _decode(tx, decode_create_events)
 
 
+def _trades_from(tx: dict, mint: str, signature: str, order: int) -> list[dict]:
+    """This token's trades in one transaction, as table rows."""
+    rows = []
+    for k, event in enumerate(e for e in events_in_transaction(tx) if e["mint"] == mint):
+        rows.append(event | {
+            "slot": tx["slot"],
+            "tx_index": order * 1000 + k,  # within-slot order: transaction position, then event position
+            "signature": signature,
+            "block_time": tx.get("blockTime"),
+        })
+    return rows
+
+
+def fetch_first_hour(mint: str, first_seconds: float = 3600, url: str | None = None) -> pd.DataFrame:
+    """Every trade in the token's first `first_seconds`, using Helius's batch method.
+
+    getTransactionsForAddress returns up to 100 full transactions per call, oldest
+    first, with each one's exact position in its block. That makes fetching a whole
+    first hour affordable even when sniper bots spam the curve with thousands of
+    non-trade transactions. Raises RuntimeError if the method isn't available.
+    """
+    url = url or rpc_url()
+    address = bonding_curve_address(mint)
+    options = {"transactionDetails": "full", "sortOrder": "asc", "limit": 100, "encoding": "json",
+               "maxSupportedTransactionVersion": 1, "filters": {"status": "succeeded"}}
+    rows, start, token, seen = [], None, None, 0
+    while True:
+        result = rpc(url, "getTransactionsForAddress", [address, options | ({"paginationToken": token} if token else {})])
+        for item in result["data"]:
+            start = start if start is not None else item["blockTime"]
+            if item["blockTime"] is not None and item["blockTime"] - start > first_seconds:
+                return pd.DataFrame(rows)
+            rows += _trades_from(item, mint, item["transaction"]["signatures"][0], item["transactionIndex"])
+        seen += len(result["data"])
+        print(f"  {seen} transactions scanned, {len(rows)} trades so far")
+        token = result.get("paginationToken")
+        if not token or not result["data"]:
+            return pd.DataFrame(rows)
+
+
 def fetch_token_trades(
     mint: str,
     max_transactions: int = 1000,
@@ -234,10 +274,17 @@ def fetch_token_trades(
     first_seconds  only keep transactions within this long of the first one
     signatures     pass the output of list_signatures if you already have it
 
+    With first_seconds set, tries the fast batch method for the whole window
+    first and falls back to one call per transaction (capped at max_transactions).
     Lists transactions on the token's bonding curve, not the mint: busy tokens
     get flooded with wallet-to-wallet transfers that touch the mint but aren't trades.
     """
     url = url or rpc_url()
+    if first_seconds is not None and "helius" in url:
+        try:
+            return fetch_first_hour(mint, first_seconds, url)
+        except RuntimeError as err:
+            print(f"  batch method unavailable ({err}); falling back to one call per transaction")
     signatures = signatures if signatures is not None else list_signatures(url, bonding_curve_address(mint))
     if first_seconds is not None and signatures:
         start = signatures[0]["blockTime"]
@@ -246,17 +293,8 @@ def fetch_token_trades(
     rows = []
     for i, sig in enumerate(signatures):
         tx = rpc(url, "getTransaction", [sig, {"encoding": "json", "maxSupportedTransactionVersion": 1}])
-        if tx is None:
-            continue
-        for event in events_in_transaction(tx):
-            if event["mint"] != mint:  # ignore events for other tokens in the same transaction
-                continue
-            rows.append(event | {
-                "slot": tx["slot"],
-                "tx_index": len(rows),  # keeps the order we received trades in
-                "signature": sig,
-                "block_time": tx.get("blockTime"),
-            })
+        if tx is not None:
+            rows += _trades_from(tx, mint, sig, i)
         if (i + 1) % 100 == 0:
             print(f"  {i + 1}/{len(signatures)} transactions fetched")
     return pd.DataFrame(rows)
