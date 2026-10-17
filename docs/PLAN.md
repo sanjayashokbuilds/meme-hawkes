@@ -14,6 +14,22 @@ Each stage ends with one commit and one tag, so the repo history tells the story
 | 6. Demo + deploy | 19–21 | Sun 17:30 | `app/streamlit_app.py`, deployed from this repo | `stage-6` |
 | 7. Write-up | 21–24 | Sun 20:30 | Final README, cleaned notebooks, `v1.0` release | `v1.0` |
 
+## The public web app: how the code is shaped from day one
+The end product is a web app where anyone pastes a pump.fun token address and gets an excitation report for that token. To make that easy, the code is split into layers that never reach into each other:
+
+```
+fetch   →   clean   →   group   →   fit   →   report   →   app
+(API)      (one table   (label     (Hawkes   (numbers +  (Streamlit
+           format)      wallets)   models)   figures)     pages)
+```
+
+- **Every layer takes a pandas table in and gives a table or numbers out.** The app never contains maths; it just calls `report`.
+- **The fetch layer is swappable.** Research data comes from a Dune trial; live lookups in the app come from Helius, which has a permanent free tier. Both produce the same table, so nothing downstream cares where data came from.
+- **Wallet grouping must work on one token at a time**, because that's all the app sees for a live lookup.
+- **The app never displays wallet addresses.** It shows aggregate shares and excitation, not "these wallets are scammers".
+- **The app shows a warning signal only if Stage 5 shows it beats the baseline.** Otherwise it shows descriptive measures and says plainly that they aren't a validated predictor.
+- **Hosting:** Streamlit Community Cloud, deployed straight from this repo, with the Helius key stored as a secret. Results are cached per token, and a few pre-computed example tokens work even if the API quota runs out.
+
 ## If we fall behind
 Cut from the bottom. Priority order:
 1. Validated univariate Hawkes (Stage 3) — non-negotiable

@@ -7,9 +7,11 @@
 ## The question
 On pump.fun, trades are public and every trade has a wallet address. That means we can split traders into "coordinated" wallets and "ordinary" wallets and ask how much of the ordinary buying is triggered by the coordinated buying. A multivariate Hawkes process puts a number on that triggering. We then test whether rising excitation gives an early warning before a pump-and-dump.
 
+The finished project is a web app: paste a pump.fun token address, get an excitation report for that token.
+
 ## Build progress
 - [x] Stage 0: scaffold
-- [ ] Stage 1: foundations and literature
+- [x] Stage 1: foundations and literature ([concepts](docs/CONCEPTS.md), [literature](docs/LITERATURE.md))
 - [ ] Stage 2: data and wallet grouping
 - [ ] Stage 3: univariate Hawkes, validated on simulated data
 - [ ] Stage 4: multivariate Hawkes and branching ratios
