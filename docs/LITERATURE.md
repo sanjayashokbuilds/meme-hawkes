@@ -40,4 +40,4 @@ Studies about 35,000 memecoins across four chains. Labels pump-and-dumps with ru
 
 We don't claim to be first to apply Hawkes processes to crypto or to manipulation. The specific angle is the cross-excitation between wallet groups that on-chain data makes visible.
 
-*Prior-work check (17 Oct 2026):* a search turned up no paper fitting multivariate Hawkes models split by wallet group on pump.fun. The nearest multivariate-Hawkes crypto work found was on stablecoin depegging ([arXiv:2205.06338](https://arxiv.org/abs/2205.06338)). A search isn't proof, so the write-up says "to our knowledge", and we re-check before publishing.
+*Prior-work check (17 Oct 2026):* a search turned up no paper fitting multivariate Hawkes models split by wallet group on pump.fun. The nearest multivariate-Hawkes crypto work found was on stablecoin depegging ([arXiv:2205.06338](https://arxiv.org/abs/2205.06338)). A search isn't proof, so the write-up says "to my knowledge".
