@@ -16,8 +16,16 @@ The finished project is a web app: paste a pump.fun token address, get an excita
 - [x] Stage 3: univariate Hawkes from scratch, validated on simulated data ([validation](docs/VALIDATION.md))
 - [x] Stage 4: multivariate Hawkes from scratch, validated ([validation](docs/VALIDATION_MULTIVARIATE.md)); real-data results in [results](docs/RESULTS.md)
 - [x] Stage 5: early-warning test against baselines ([results](docs/RESULTS.md#stage-5-early-warning-test))
+- [x] Stage 5b: launch-and-fade background, which fixes most of the misfit ([validation](docs/VALIDATION_FADING.md), [results](docs/RESULTS.md#stage-5b-launch-and-fade-background))
 - [ ] Stage 6: dashboard
 - [ ] Stage 7: write-up
+
+## Findings so far
+- **The near-critical branching ratio was mostly an artefact.** A constant-background Hawkes model gives a median n of 0.95 on these tokens. Letting launch-time interest fade (median half-life 39 s) cuts it to 0.58, doubles the share of tokens passing the fit check, and wins on AIC for 82% of tokens.
+- **Early-slot wallets show small, uncertain excitation of ordinary trading** (0.15 extra ordinary trades per early trade under the better model).
+- **Excitation doesn't separate pump-and-dumps from other tokens,** and as an early-warning signal it doesn't beat "the price has already doubled". These are negative results, reported as they came out. See [`docs/RESULTS.md`](docs/RESULTS.md).
+
+![Constant vs fading background](figures/fading_vs_constant.png)
 
 ## Validation so far
 Before touching real data, the estimator was run on 100 simulated trade histories per scenario with known parameters. It recovers the branching ratio with negligible bias. The spread is about ±0.04 at 1,000 trades and about ±0.06 at 300 trades. Full table in [`docs/VALIDATION.md`](docs/VALIDATION.md).
