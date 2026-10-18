@@ -7,7 +7,9 @@
 ## The question
 On pump.fun, trades are public and every trade has a wallet address. That means we can split traders into "coordinated" wallets and "ordinary" wallets and ask how much of the ordinary buying is triggered by the coordinated buying. A multivariate Hawkes process puts a number on that triggering. We then test whether rising excitation gives an early warning before a pump-and-dump.
 
-**Web app:** paste a pump.fun token address and see how much of its first hour of trading was trades setting off more trades, and how much of that came from wallets that bought in the first seconds. Run it locally with `streamlit run app/streamlit_app.py`; see [`docs/DEPLOY.md`](docs/DEPLOY.md) to put it online.
+**Web app:** paste a pump.fun token address and see how much of its first hour of trading was trades setting off more trades, and how much came from wallets that bought in its first seconds. Every trade is drawn on the price path and coloured by how likely the fitted model thinks it was a reaction. Run it locally with `streamlit run app/streamlit_app.py`; see [`docs/DEPLOY.md`](docs/DEPLOY.md) to put it online.
+
+![The web app](figures/app.png)
 
 ## Build progress
 - [x] Stage 0: scaffold
@@ -17,7 +19,7 @@ On pump.fun, trades are public and every trade has a wallet address. That means 
 - [x] Stage 4: multivariate Hawkes from scratch, validated ([validation](docs/VALIDATION_MULTIVARIATE.md)); real-data results in [results](docs/RESULTS.md)
 - [x] Stage 5: early-warning test against baselines ([results](docs/RESULTS.md#stage-5-early-warning-test))
 - [x] Stage 5b: launch-and-fade background, which fixes most of the misfit ([validation](docs/VALIDATION_FADING.md), [results](docs/RESULTS.md#stage-5b-launch-and-fade-background))
-- [x] Stage 6: web app (`app/streamlit_app.py`; [deploy guide](docs/DEPLOY.md))
+- [x] Stage 6: web app, redesigned around a per-trade "cascade" figure (`app/`; [deploy guide](docs/DEPLOY.md))
 - [ ] Stage 7: write-up
 
 ## Findings so far
@@ -40,11 +42,11 @@ See [`docs/PLAN.md`](docs/PLAN.md) for the schedule and [`docs/DECISIONS.md`](do
 ```
 meme_hawkes/   the Python package (data, models, diagnostics, evaluation)
 notebooks/     step-by-step analysis notebooks
+app/           the web app: page (streamlit_app.py) and the cascade figure (figure.py)
 tests/         checks that the estimators recover known parameters
 scripts/       command-line tools: fetch, sample, fit, validate, ship
 data/          raw pulls (not committed) and small processed samples
 figures/       plots used in this README
-app/           Streamlit dashboard
 docs/          plan, decision log, concepts, literature, results
 ```
 
