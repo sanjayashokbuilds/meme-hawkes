@@ -15,3 +15,6 @@ venv/
 # OS clutter
 .DS_Store
 Thumbs.db
+
+# Streamlit secrets (your Helius key for the app, if you run it locally with secrets)
+.streamlit/secrets.toml

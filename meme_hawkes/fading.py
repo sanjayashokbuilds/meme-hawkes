@@ -148,3 +148,11 @@ def goodness_of_fit_2(times, types, p) -> list[float]:
         gaps = np.diff(np.concatenate([[0.0], own]))
         out.append(float(stats.kstest(gaps, "expon").pvalue) if len(gaps) > 5 else float("nan"))
     return out
+
+
+def intensity(grid, times, p) -> np.ndarray:
+    """lambda(t) under the fading model, at each time in grid (for plots)."""
+    lag = np.asarray(grid, float)[:, None] - np.asarray(times, float)[None, :]
+    past = lag > 0
+    excite = (np.exp(-p["beta"] * np.where(past, lag, 0.0)) * past).sum(axis=1)
+    return background(grid, p["mu0"], p["mu1"], p["gamma"]) + p["alpha"] * excite

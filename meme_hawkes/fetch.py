@@ -235,13 +235,16 @@ def _trades_from(tx: dict, mint: str, signature: str, order: int) -> list[dict]:
     return rows
 
 
-def fetch_first_hour(mint: str, first_seconds: float = 3600, url: str | None = None) -> pd.DataFrame:
+def fetch_first_hour(mint: str, first_seconds: float = 3600, url: str | None = None,
+                     max_scanned: int | None = None) -> pd.DataFrame:
     """Every trade in the token's first `first_seconds`, using Helius's batch method.
 
     getTransactionsForAddress returns up to 100 full transactions per call, oldest
     first, with each one's exact position in its block. That makes fetching a whole
     first hour affordable even when sniper bots spam the curve with thousands of
     non-trade transactions. Raises RuntimeError if the method isn't available.
+    max_scanned caps how many transactions are read (for the public app); if the
+    cap stops the scan early, the result's .attrs["truncated"] is True.
     """
     url = url or rpc_url()
     address = bonding_curve_address(mint)
@@ -260,6 +263,10 @@ def fetch_first_hour(mint: str, first_seconds: float = 3600, url: str | None = N
         token = result.get("paginationToken")
         if not token or not result["data"]:
             return pd.DataFrame(rows)
+        if max_scanned is not None and seen >= max_scanned:
+            df = pd.DataFrame(rows)
+            df.attrs["truncated"] = True
+            return df
 
 
 def fetch_token_trades(

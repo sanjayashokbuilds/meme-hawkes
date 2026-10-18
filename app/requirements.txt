@@ -1,0 +1,9 @@
+# Dependencies for the web app only (Streamlit Community Cloud reads this file first).
+streamlit>=1.40
+altair>=5
+numpy
+scipy
+pandas
+requests
+base58
+python-dotenv

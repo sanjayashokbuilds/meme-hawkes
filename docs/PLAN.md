@@ -12,7 +12,7 @@ Each stage ends with one commit and one tag, so the repo history tells the story
 | 4. Multivariate Hawkes | 11–16 | Sun 12:30 | `meme_hawkes/multivariate.py`, rolling branching ratio, excitation-matrix figures | `stage-4` |
 | 5. Early warning | 16–19 | Sun 15:30 | `meme_hawkes/warning.py`, baseline, `docs/RESULTS.md` (precision, recall, lead time; negative results included) | `stage-5` |
 | 5b. Fading background | — | Sun 01:30 | `meme_hawkes/fading.py`, validation, refit of all tokens | `stage-5b` |
-| 6. Demo + deploy | 19–21 | Sun 17:30 | `app/streamlit_app.py`, deployed from this repo | `stage-6` |
+| 6. Web app | 19–21 | Sun 17:30 | `app/streamlit_app.py`, `meme_hawkes/analysis.py`, precomputed examples, deploy guide | `stage-6` |
 | 7. Write-up | 21–24 | Sun 20:30 | Final README, cleaned notebooks, `v1.0` release | `v1.0` |
 
 ## The public web app: how the code is shaped from day one
